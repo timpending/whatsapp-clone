@@ -13,15 +13,15 @@ export default class ChatCtrl extends Controller {
     this.isCordova = Meteor.isCordova;
 
     this.helpers({
-
       messages() {
         return Messages.find({ chatId: this.chatId });
       },
       data() {
         return Chats.findOne(this.chatId);
       }
-
     });
+
+    this.autoScroll();
   }
 
   sendMessage() {
@@ -35,7 +35,6 @@ export default class ChatCtrl extends Controller {
 
     delete this.message;
   }
-
 
   inputUp () {
     if (this.isIOS) {
@@ -59,11 +58,33 @@ export default class ChatCtrl extends Controller {
     }
   }
 
+  autoScroll() {
+    let recentMessagesNum = this.messages.length;
+
+    this.autorun(() => {
+      const currMessagesNum = this.getCollectionReactively('messages').length;
+      const animate = recentMessagesNum != currMessagesNum;
+      recentMessagesNum = currMessagesNum;
+      this.scrollBottom(animate);
+    });
+  }
+
   scrollBottom(animate) {
     this.$timeout(() => {
       this.$ionicScrollDelegate.$getByHandle('chatScroll').scrollBottom(animate);
     }, 300);
   }
+
+  handleError(err) {
+    if (err.error == 'cancel') return;
+    this.$log.error('Profile save error ', err);
+
+    this.$ionicPopup.alert({
+      title: err.reason || 'Save failed',
+      template: 'Please try again',
+      okType: 'button-positive button-clear'
+    });
+  }
 }
 
-ChatCtrl.$inject = ['$stateParams', '$timeout', '$ionicScrollDelegate'];
+ChatCtrl.$inject = ['$stateParams', '$timeout', '$ionicScrollDelegate', '$ionicPopup', '$log'];
